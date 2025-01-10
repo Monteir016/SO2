@@ -23,6 +23,24 @@ void cleanup_pipes() {
   unlink(notifPipePath);
 }
 
+//FIXME ALTERAR LOPES
+// Function to create a FIFO and handle reconnection
+int create_fifo(const char *fifo_path) {
+    if (access(fifo_path, F_OK) == 0) { // Check if FIFO already exists
+        if (unlink(fifo_path) == -1) { // Remove the existing FIFO
+            perror("Failed to remove existing FIFO");
+            return -1;
+        }
+    }
+
+    // Create the FIFO
+    if (mkfifo(fifo_path, 0666) == -1) {
+        perror("Failed to create FIFO");
+        return -1;
+    }
+    return 0;
+}
+
 int kvs_connect(char const *req_pipe_path, char const *resp_pipe_path,
                 char const *server_pipe_path, char const *notif_pipe_path,
                 int *notif_pipe) {
@@ -31,23 +49,20 @@ int kvs_connect(char const *req_pipe_path, char const *resp_pipe_path,
   respPipePath = resp_pipe_path;
   notifPipePath = notif_pipe_path;
 
-
-  if (mkfifo(req_pipe_path, 0666) == -1) {
-    perror("Failed to create request pipe");
-    unlink(req_pipe_path);
-    return 1;
+  //FIXME LOPES ALTERAR
+  if (create_fifo(req_pipe_path) == -1) {
+    unlink(req_pipe_path); // Clean up
+      return 1;
   }
 
-  if (mkfifo(resp_pipe_path, 0666) == -1) {
-    perror("Failed to create response pipe");
-    unlink(resp_pipe_path);
-    return 1;
+  if (create_fifo(resp_pipe_path) == -1) {
+      unlink(req_pipe_path); // Clean up previously created FIFOs
+      return 1;
   }
 
-  if (mkfifo(notif_pipe_path, 0666) == -1) {
-    perror("Failed to create notification pipe");
-    unlink(notif_pipe_path);
-    return 1;
+  if (create_fifo(notif_pipe_path) == -1) {
+      unlink(resp_pipe_path); // Clean up
+      return 1;
   }
 
   int server_fd = open(server_pipe_path, O_WRONLY);
@@ -94,7 +109,7 @@ int kvs_disconnect(void) {
   return 0;
 }
 
-int kvs_subscribe(const char *key) {
+int kvs_subscribe(const char *key) { //EDITAR
   // send subscribe message to request pipe and wait for response in response
   // pipe
   int req_fd = open(reqPipePath, O_WRONLY);
@@ -133,7 +148,7 @@ int kvs_subscribe(const char *key) {
   return response == 0 ? 0 : 1;
 }
 
-int kvs_unsubscribe(const char *key) {
+int kvs_unsubscribe(const char *key) { //EDITAR
   // send unsubscribe message to request pipe and wait for response in response
   // pipe
   int req_fd = open(reqPipePath, O_WRONLY);

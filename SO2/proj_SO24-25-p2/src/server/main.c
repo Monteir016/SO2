@@ -83,6 +83,7 @@ int filter_job_files(const struct dirent *entry) {
     return 0;
 }
 
+
 // Process job files
 static int entry_files(const char *dir, struct dirent *entry, char *in_path, char *out_path) {
     const char *dot = strrchr(entry->d_name, '.');
@@ -376,7 +377,7 @@ int main(int argc, char **argv) {
         perror("Failed to remove existing register FIFO");
         return 1;
     }
-}
+  }
   
   if (mkfifo(register_fifo_path, 0666) == -1) { //Lopes
     write_str(STDERR_FILENO, "Failed to create register fifo\n");
