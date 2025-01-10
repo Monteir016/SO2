@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
 
     case CMD_SUBSCRIBE:
       num = parse_list(STDIN_FILENO, keys, 1, MAX_STRING_SIZE);
-      printf("num: %ld\n", num);
+      printf("keys[0]: %s\n", keys[0]);
       if (num == 0) {
         fprintf(stderr, "Invalid command. See HELP for usage\n");
         continue;
