@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     switch (get_next(STDIN_FILENO)) {
     case CMD_DISCONNECT:
+      printf("nigga"); //FIXME Lopes
       if (kvs_disconnect() != 0) {
         fprintf(stderr, "Failed to disconnect to the server\n");
         return 1;
