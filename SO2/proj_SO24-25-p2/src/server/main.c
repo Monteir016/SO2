@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include "constants.h"
 #include "io.h"
@@ -54,7 +55,7 @@ static void *handle_client_connections(void *arg) { //Lopes
       perror("Failed to read from register FIFO");
       break;
     }
-    usleep(100000); // Sleep for 100ms to avoid busy-waiting
+    sleep(1); // Sleep for 1s
   }
 
   close(register_fd);

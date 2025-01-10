@@ -25,7 +25,7 @@ void *notification_handler(void *arg) { //Lopes
       perror("Failed to read from notification pipe");
       break;
     }
-    usleep(100000); // Sleep for 100ms to avoid busy-waiting
+    sleep(1); // Sleep for 1s
   }
   return NULL;
 }
