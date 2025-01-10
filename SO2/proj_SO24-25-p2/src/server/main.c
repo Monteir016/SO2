@@ -171,8 +171,7 @@ static int run_job(int in_fd, int out_fd, char *filename) {
             break;
 
         case EOC:
-            // FIXME: Log EOF reached
-            fprintf(stderr, "FIXME: EOF reached\n");
+            fprintf(stderr, "EOF reached\n");
             return 0;
         }
     }
@@ -265,7 +264,9 @@ static void dispatch_threads(DIR *dir) {
       return;
     }
   }
-  
+
+  // ler do FIFO de registo
+
   for (unsigned int i = 0; i < max_threads; i++) {
     if (pthread_join(threads[i], NULL) != 0) {
       fprintf(stderr, "Failed to join thread %u\n", i);
@@ -283,7 +284,7 @@ static void dispatch_threads(DIR *dir) {
 }
 
 int main(int argc, char **argv) {
-  printf("1"); //FIXME
+  printf("1\n"); //FIXME
   if (argc < 4) {
     write_str(STDERR_FILENO, "Usage: ");
     write_str(STDERR_FILENO, argv[0]);
