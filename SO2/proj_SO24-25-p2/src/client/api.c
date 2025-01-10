@@ -40,7 +40,7 @@ int kvs_connect(char const *req_pipe_path, char const *resp_pipe_path,
 
   if (mkfifo(resp_pipe_path, 0666) == -1) {
     perror("Failed to create response pipe");
-    unliink(resp_pipe_path);
+    unlink(resp_pipe_path);
     return 1;
   }
 
