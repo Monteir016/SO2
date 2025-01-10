@@ -122,6 +122,7 @@ int kvs_subscribe(const char *key) { //EDITAR
 
   char message[MAX_STRING_SIZE + 2];
   snprintf(message, sizeof(message), "%c%-40s", OP_CODE_SUBSCRIBE, key);
+  printf("message: %s\n", message);
   printf("3"); // FIXME
 
   if (write(req_fd, message, sizeof(message)) == -1) {

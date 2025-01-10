@@ -81,8 +81,10 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Invalid command. See HELP for usage\n");
         continue;
       }
-
-      if (kvs_subscribe(keys[0])) {
+      printf("keys[0]: %s\n", keys[0]);
+      int sub = kvs_subscribe(keys[0]);
+      printf("keys[0]: %s\n", keys[0]);
+      if (sub) {
         fprintf(stderr, "Command subscribe failed\n");
       }
       break; //Lopes
