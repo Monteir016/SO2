@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
         if (bytes_read > 0) {
             buffer[bytes_read] = '\0';
             // FIXME: Log received client connection request
-            fprintf(stderr, "FIXME: Received client connection request: %s\n", buffer);
+            fprintf(stderr, "Received client connection\n");
 
             char req_pipe_path[MAX_STRING_SIZE];
             char resp_pipe_path[MAX_STRING_SIZE];
@@ -407,7 +407,6 @@ int main(int argc, char **argv) {
 
             // Handle the connection request (e.g., create a new thread to handle the client)
             // FIXME: Log client request pipe paths
-            fprintf(stderr, "FIXME: req_pipe_path=%s, resp_pipe_path=%s, notif_pipe_path=%s\n", req_pipe_path, resp_pipe_path, notif_pipe_path);
         } else if (bytes_read == -1 && errno != EAGAIN) {
             perror("Failed to read from register FIFO");
             break;
