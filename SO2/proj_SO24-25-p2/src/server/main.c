@@ -370,6 +370,14 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  //FIXME LOPES
+  if (access(register_fifo_path, F_OK) == 0) { // Check if FIFO already exists
+    if (unlink(register_fifo_path) == -1) {  // Remove the existing FIFO
+        perror("Failed to remove existing register FIFO");
+        return 1;
+    }
+}
+  
   if (mkfifo(register_fifo_path, 0666) == -1) { //Lopes
     write_str(STDERR_FILENO, "Failed to create register fifo\n");
     return 1;
