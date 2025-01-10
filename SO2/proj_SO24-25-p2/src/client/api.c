@@ -109,32 +109,37 @@ int kvs_disconnect(void) {
   return 0;
 }
 
-int kvs_subscribe() { //const char *key) { //EDITAR
+int kvs_subscribe(const char *key) { //EDITAR
   // send subscribe message to request pipe and wait for response in response
   // pipe
-/*
+  printf("1"); // FIXME
   int req_fd = open(reqPipePath, O_WRONLY);
   if (req_fd == -1) {
     perror("Failed to open request pipe");
     return 1;
   }
+  printf("2"); // FIXME
 
   char message[MAX_STRING_SIZE + 2];
   snprintf(message, sizeof(message), "%c%-40s", OP_CODE_SUBSCRIBE, key);
+  printf("3"); // FIXME
 
   if (write(req_fd, message, sizeof(message)) == -1) {
     perror("Failed to write to request pipe");
     close(req_fd);
     return 1;
   }
+  printf("4"); // FIXME
 
   close(req_fd);
+  printf("5"); // FIXME
 
   int resp_fd = open(respPipePath, O_RDONLY);
   if (resp_fd == -1) {
     perror("Failed to open response pipe");
     return 1;
   }
+  printf("6"); // FIXME
 
   char response;
   if (read(resp_fd, &response, sizeof(response)) == -1) {
@@ -142,13 +147,14 @@ int kvs_subscribe() { //const char *key) { //EDITAR
     close(resp_fd);
     return 1;
   }
+  printf("7"); // FIXME
 
   close(resp_fd);
 
   printf("Server returned %d for operation: subscribe\n", response);
   return response == 0 ? 0 : 1;
-*/
-return 1;
+
+  return 1;
 }
 
 int kvs_unsubscribe(const char *key) { //EDITAR
