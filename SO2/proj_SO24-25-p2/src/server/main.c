@@ -9,19 +9,20 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
-
+#include <pthread.h>
 #include "constants.h"
 #include "io.h"
 #include "operations.h"
 #include "parser.h"
-#include "pthread.h"
 
+// Shared data structure
 struct SharedData {
-  DIR *dir;
-  char *dir_name;
-  pthread_mutex_t directory_mutex;
+    DIR *dir;
+    char *dir_name;
+    pthread_mutex_t directory_mutex;
 };
 
+// Global variables
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t n_current_backups_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -30,177 +31,189 @@ size_t max_backups;        // Maximum allowed simultaneous backups
 size_t max_threads;        // Maximum allowed simultaneous threads
 char *jobs_directory = NULL;
 
-static void *handle_client_connections(void *arg) { //Lopes
-  char *register_fifo_path = (char *)arg;
-  int register_fd = open(register_fifo_path, O_RDONLY);
-  if (register_fd == -1) {
-    perror("Failed to open register FIFO");
+// Signal handler for debugging
+void handle_signal(int sig) {
+    // FIXME: Log received signal
+    fprintf(stderr, "FIXME: Received signal: %d\n", sig);
+}
+
+// Thread function to handle client connections
+static void *handle_client_connections(void *arg) {
+    char *register_fifo_path = (char *)arg;
+    int register_fd = open(register_fifo_path, O_RDONLY);
+    if (register_fd == -1) {
+        perror("Failed to open register FIFO");
+        return NULL;
+    }
+    //FIXME
+    printf("gay");
+    while (1) {
+        char buffer[3 * MAX_STRING_SIZE + 2];
+        ssize_t bytes_read = read(register_fd, buffer, sizeof(buffer) - 1);
+        if (bytes_read > 0) {
+            buffer[bytes_read] = '\0';
+            // FIXME: Log received client connection request
+            fprintf(stderr, "FIXME: Received client connection request: %s\n", buffer);
+
+            char req_pipe_path[MAX_STRING_SIZE];
+            char resp_pipe_path[MAX_STRING_SIZE];
+            char notif_pipe_path[MAX_STRING_SIZE];
+            sscanf(buffer, "%*c|%40s|%40s|%40s", req_pipe_path, resp_pipe_path, notif_pipe_path);
+
+            // Handle the connection request (e.g., create a new thread to handle the client)
+            // FIXME: Log client request pipe paths
+            fprintf(stderr, "FIXME: req_pipe_path=%s, resp_pipe_path=%s, notif_pipe_path=%s\n", req_pipe_path, resp_pipe_path, notif_pipe_path);
+        } else if (bytes_read == -1 && errno != EAGAIN) {
+            perror("Failed to read from register FIFO");
+            break;
+        }
+        sleep(1); // Sleep for 1s
+    }
+
+    close(register_fd);
     return NULL;
-  }
-
-  while (1) {
-    char buffer[3 * MAX_STRING_SIZE + 2];
-    ssize_t bytes_read = read(register_fd, buffer, sizeof(buffer) - 1);
-    if (bytes_read > 0) {
-      buffer[bytes_read] = '\0';
-      // Parse the connection request
-      char req_pipe_path[MAX_STRING_SIZE];
-      char resp_pipe_path[MAX_STRING_SIZE];
-      char notif_pipe_path[MAX_STRING_SIZE];
-      sscanf(buffer, "%*c|%40s|%40s|%40s", req_pipe_path, resp_pipe_path, notif_pipe_path);
-
-      // Handle the connection request (e.g., create a new thread to handle the client)
-      // ...
-    } else if (bytes_read == -1 && errno != EAGAIN) {
-      perror("Failed to read from register FIFO");
-      break;
-    }
-    sleep(1); // Sleep for 1s
-  }
-
-  close(register_fd);
-  return NULL;
 }
 
+// Filter function for directory entries
 int filter_job_files(const struct dirent *entry) {
-  const char *dot = strrchr(entry->d_name, '.');
-  if (dot != NULL && strcmp(dot, ".job") == 0) {
-    return 1; // Keep this file (it has the .job extension)
-  }
-  return 0;
-}
-
-static int entry_files(const char *dir, struct dirent *entry, char *in_path,
-                       char *out_path) {
-  const char *dot = strrchr(entry->d_name, '.');
-  if (dot == NULL || dot == entry->d_name || strlen(dot) != 4 ||
-      strcmp(dot, ".job")) {
-    return 1;
-  }
-
-  if (strlen(entry->d_name) + strlen(dir) + 2 > MAX_JOB_FILE_NAME_SIZE) {
-    fprintf(stderr, "%s/%s\n", dir, entry->d_name);
-    return 1;
-  }
-
-  strcpy(in_path, dir);
-  strcat(in_path, "/");
-  strcat(in_path, entry->d_name);
-
-  strcpy(out_path, in_path);
-  strcpy(strrchr(out_path, '.'), ".out");
-
-  return 0;
-}
-
-static int run_job(int in_fd, int out_fd, char *filename) {
-  size_t file_backups = 0;
-  while (1) {
-    char keys[MAX_WRITE_SIZE][MAX_STRING_SIZE] = {0};
-    char values[MAX_WRITE_SIZE][MAX_STRING_SIZE] = {0};
-    unsigned int delay;
-    size_t num_pairs;
-
-    switch (get_next(in_fd)) {
-    case CMD_WRITE:
-      num_pairs =
-          parse_write(in_fd, keys, values, MAX_WRITE_SIZE, MAX_STRING_SIZE);
-      if (num_pairs == 0) {
-        write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
-        continue;
-      }
-
-      if (kvs_write(num_pairs, keys, values)) {
-        write_str(STDERR_FILENO, "Failed to write pair\n");
-      }
-      break;
-
-    case CMD_READ:
-      num_pairs =
-          parse_read_delete(in_fd, keys, MAX_WRITE_SIZE, MAX_STRING_SIZE);
-
-      if (num_pairs == 0) {
-        write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
-        continue;
-      }
-
-      if (kvs_read(num_pairs, keys, out_fd)) {
-        write_str(STDERR_FILENO, "Failed to read pair\n");
-      }
-      break;
-
-    case CMD_DELETE:
-      num_pairs =
-          parse_read_delete(in_fd, keys, MAX_WRITE_SIZE, MAX_STRING_SIZE);
-
-      if (num_pairs == 0) {
-        write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
-        continue;
-      }
-
-      if (kvs_delete(num_pairs, keys, out_fd)) {
-        write_str(STDERR_FILENO, "Failed to delete pair\n");
-      }
-      break;
-
-    case CMD_SHOW:
-      kvs_show(out_fd);
-      break;
-
-    case CMD_WAIT:
-      if (parse_wait(in_fd, &delay, NULL) == -1) {
-        write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
-        continue;
-      }
-
-      if (delay > 0) {
-        printf("Waiting %d seconds\n", delay / 1000);
-        kvs_wait(delay);
-      }
-      break;
-
-    case CMD_BACKUP:
-      pthread_mutex_lock(&n_current_backups_lock);
-      if (active_backups >= max_backups) {
-        wait(NULL);
-      } else {
-        active_backups++;
-      }
-      pthread_mutex_unlock(&n_current_backups_lock);
-      int aux = kvs_backup(++file_backups, filename, jobs_directory);
-
-      if (aux < 0) {
-        write_str(STDERR_FILENO, "Failed to do backup\n");
-      } else if (aux == 1) {
-        return 1;
-      }
-      break;
-
-    case CMD_INVALID:
-      write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
-      break;
-
-    case CMD_HELP:
-      write_str(STDOUT_FILENO,
-                "Available commands:\n"
-                "  WRITE [(key,value)(key2,value2),...]\n"
-                "  READ [key,key2,...]\n"
-                "  DELETE [key,key2,...]\n"
-                "  SHOW\n"
-                "  WAIT <delay_ms>\n"
-                "  BACKUP\n" // Not implemented
-                "  HELP\n");
-
-      break;
-
-    case CMD_EMPTY:
-      break;
-
-    case EOC:
-      printf("EOF\n");
-      return 0;
+    const char *dot = strrchr(entry->d_name, '.');
+    if (dot != NULL && strcmp(dot, ".job") == 0) {
+        return 1; // Keep this file (it has the .job extension)
     }
-  }
+    return 0;
+}
+
+// Process job files
+static int entry_files(const char *dir, struct dirent *entry, char *in_path, char *out_path) {
+    const char *dot = strrchr(entry->d_name, '.');
+    if (dot == NULL || dot == entry->d_name || strlen(dot) != 4 || strcmp(dot, ".job")) {
+        return 1;
+    }
+
+    if (strlen(entry->d_name) + strlen(dir) + 2 > MAX_JOB_FILE_NAME_SIZE) {
+        // FIXME: Log path length error
+        fprintf(stderr, "FIXME: Path length error: %s/%s\n", dir, entry->d_name);
+        return 1;
+    }
+
+    strcpy(in_path, dir);
+    strcat(in_path, "/");
+    strcat(in_path, entry->d_name);
+
+    strcpy(out_path, in_path);
+    strcpy(strrchr(out_path, '.'), ".out");
+
+    return 0;
+}
+
+// Executes a job
+static int run_job(int in_fd, int out_fd, char *filename) {
+    size_t file_backups = 0;
+    while (1) {
+        char keys[MAX_WRITE_SIZE][MAX_STRING_SIZE] = {0};
+        char values[MAX_WRITE_SIZE][MAX_STRING_SIZE] = {0};
+        unsigned int delay;
+        size_t num_pairs;
+
+        switch (get_next(in_fd)) {
+        case CMD_WRITE:
+            num_pairs = parse_write(in_fd, keys, values, MAX_WRITE_SIZE, MAX_STRING_SIZE);
+            if (num_pairs == 0) {
+                write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
+                continue;
+            }
+
+            if (kvs_write(num_pairs, keys, values)) {
+                write_str(STDERR_FILENO, "Failed to write pair\n");
+            }
+            break;
+
+        case CMD_READ:
+            num_pairs = parse_read_delete(in_fd, keys, MAX_WRITE_SIZE, MAX_STRING_SIZE);
+
+            if (num_pairs == 0) {
+                write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
+                continue;
+            }
+
+            if (kvs_read(num_pairs, keys, out_fd)) {
+                write_str(STDERR_FILENO, "Failed to read pair\n");
+            }
+            break;
+
+        case CMD_DELETE:
+            num_pairs = parse_read_delete(in_fd, keys, MAX_WRITE_SIZE, MAX_STRING_SIZE);
+
+            if (num_pairs == 0) {
+                write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
+                continue;
+            }
+
+            if (kvs_delete(num_pairs, keys, out_fd)) {
+                write_str(STDERR_FILENO, "Failed to delete pair\n");
+            }
+            break;
+
+        case CMD_SHOW:
+            kvs_show(out_fd);
+            break;
+
+        case CMD_WAIT:
+            if (parse_wait(in_fd, &delay, NULL) == -1) {
+                write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
+                continue;
+            }
+
+            if (delay > 0) {
+                // FIXME: Log waiting time
+                fprintf(stderr, "FIXME: Waiting %d seconds\n", delay / 1000);
+                kvs_wait(delay);
+            }
+            break;
+
+        case CMD_BACKUP:
+            pthread_mutex_lock(&n_current_backups_lock);
+            if (active_backups >= max_backups) {
+                wait(NULL);
+            } else {
+                active_backups++;
+            }
+            pthread_mutex_unlock(&n_current_backups_lock);
+
+            int aux = kvs_backup(++file_backups, filename, jobs_directory);
+
+            if (aux < 0) {
+                write_str(STDERR_FILENO, "Failed to do backup\n");
+            } else if (aux == 1) {
+                return 1;
+            }
+            break;
+
+        case CMD_INVALID:
+            write_str(STDERR_FILENO, "Invalid command. See HELP for usage\n");
+            break;
+
+        case CMD_HELP:
+            write_str(STDOUT_FILENO,
+                      "Available commands:\n"
+                      "  WRITE [(key,value)(key2,value2),...]\n"
+                      "  READ [key,key2,...]\n"
+                      "  DELETE [key,key2,...]\n"
+                      "  SHOW\n"
+                      "  WAIT <delay_ms>\n"
+                      "  BACKUP\n" // Not implemented
+                      "  HELP\n");
+            break;
+
+        case CMD_EMPTY:
+            break;
+
+        case EOC:
+            // FIXME: Log EOF reached
+            fprintf(stderr, "FIXME: EOF reached\n");
+            return 0;
+        }
+    }
 }
 
 // frees arguments

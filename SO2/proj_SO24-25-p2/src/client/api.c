@@ -32,9 +32,21 @@ int kvs_connect(char const *req_pipe_path, char const *resp_pipe_path,
   notifPipePath = notif_pipe_path;
 
 
-  if (mkfifo(req_pipe_path, 0666) == -1 || mkfifo(resp_pipe_path, 0666) == -1 || mkfifo(notif_pipe_path, 0666) == -1) {
-    perror("Failed to create one of the pipes");
-    cleanup_pipes();
+  if (mkfifo(req_pipe_path, 0666) == -1) {
+    perror("Failed to create request pipe");
+    unlink(req_pipe_path);
+    return 1;
+  }
+
+  if (mkfifo(resp_pipe_path, 0666) == -1) {
+    perror("Failed to create response pipe");
+    unliink(resp_pipe_path);
+    return 1;
+  }
+
+  if (mkfifo(notif_pipe_path, 0666) == -1) {
+    perror("Failed to create notification pipe");
+    unlink(notif_pipe_path);
     return 1;
   }
 
