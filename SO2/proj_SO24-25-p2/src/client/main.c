@@ -14,7 +14,7 @@
 pthread_t notif_thread;
 int notif_pipe;
 
-void *notification_handler(void *arg) { //Lopes
+void *notification_handler() { //Lopes
   char buffer[2 * MAX_STRING_SIZE + 3]; // 2 * 40 + 2 for parentheses and comma + 1 for null terminator
   while (1) {
     ssize_t bytes_read = read(notif_pipe, buffer, sizeof(buffer) - 1);
