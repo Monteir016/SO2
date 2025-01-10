@@ -383,10 +383,31 @@ int main(int argc, char **argv) {
 
   dispatch_threads(dir, register_fifo_path); //Lopes
 
-  if (closedir(dir) == -1) {
-    fprintf(stderr, "Failed to close directory\n");
-    return 0;
-  }
+    int register_fd = open(register_fifo_path, O_RDONLY);
+    //FIXME
+    printf("gay");
+    while (1) {
+        char buffer[3 * MAX_STRING_SIZE + 2];
+        ssize_t bytes_read = read(register_fd, buffer, sizeof(buffer) - 1);
+        if (bytes_read > 0) {
+            buffer[bytes_read] = '\0';
+            // FIXME: Log received client connection request
+            fprintf(stderr, "FIXME: Received client connection request: %s\n", buffer);
+
+            char req_pipe_path[MAX_STRING_SIZE];
+            char resp_pipe_path[MAX_STRING_SIZE];
+            char notif_pipe_path[MAX_STRING_SIZE];
+            sscanf(buffer, "%*c|%40s|%40s|%40s", req_pipe_path, resp_pipe_path, notif_pipe_path);
+
+            // Handle the connection request (e.g., create a new thread to handle the client)
+            // FIXME: Log client request pipe paths
+            fprintf(stderr, "FIXME: req_pipe_path=%s, resp_pipe_path=%s, notif_pipe_path=%s\n", req_pipe_path, resp_pipe_path, notif_pipe_path);
+        } else if (bytes_read == -1 && errno != EAGAIN) {
+            perror("Failed to read from register FIFO");
+            break;
+        }
+        sleep(1); // Sleep for 1s
+    }
 
   while (active_backups > 0) {
     wait(NULL);
