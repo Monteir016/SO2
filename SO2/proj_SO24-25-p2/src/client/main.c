@@ -64,7 +64,6 @@ int main(int argc, char *argv[]) {
   while (1) {
     switch (get_next(STDIN_FILENO)) {
     case CMD_DISCONNECT:
-      printf("Nigga "); //FIXME Lopes
       if (kvs_disconnect() != 0) {
         fprintf(stderr, "Failed to disconnect to the server\n");
         return 1;
@@ -85,8 +84,7 @@ int main(int argc, char *argv[]) {
       if (kvs_subscribe(keys[0])) {
         fprintf(stderr, "Command subscribe failed\n");
       }
-
-      break;
+      break; //Lopes
 
     case CMD_UNSUBSCRIBE:
       num = parse_list(STDIN_FILENO, keys, 1, MAX_STRING_SIZE);
@@ -98,8 +96,7 @@ int main(int argc, char *argv[]) {
       if (kvs_unsubscribe(keys[0])) {
         fprintf(stderr, "Command subscribe failed\n");
       }
-
-      break;
+      break; //Lopes
 
     case CMD_DELAY:
       if (parse_delay(STDIN_FILENO, &delay_ms) == -1) {

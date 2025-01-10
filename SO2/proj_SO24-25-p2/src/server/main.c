@@ -45,8 +45,7 @@ static void *handle_client_connections(void *arg) {
         perror("Failed to open register FIFO");
         return NULL;
     }
-    //FIXME
-    printf("gay");
+
     while (1) {
         char buffer[3 * MAX_STRING_SIZE + 2];
         ssize_t bytes_read = read(register_fd, buffer, sizeof(buffer) - 1);
@@ -166,8 +165,6 @@ static int run_job(int in_fd, int out_fd, char *filename) {
             }
 
             if (delay > 0) {
-                // FIXME: Log waiting time
-                fprintf(stderr, "FIXME: Waiting %d seconds\n", delay / 1000);
                 kvs_wait(delay);
             }
             break;
@@ -202,7 +199,7 @@ static int run_job(int in_fd, int out_fd, char *filename) {
                       "  DELETE [key,key2,...]\n"
                       "  SHOW\n"
                       "  WAIT <delay_ms>\n"
-                      "  BACKUP\n" // Not implemented
+                      "  BACKUP\n"
                       "  HELP\n");
             break;
 
