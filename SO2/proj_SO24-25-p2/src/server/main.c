@@ -37,42 +37,6 @@ void handle_signal(int sig) {
     fprintf(stderr, "FIXME: Received signal: %d\n", sig);
 }
 
-// Thread function to handle client connections
-static void *handle_client_connections(void *arg) {
-    char *register_fifo_path = (char *)arg;
-    int register_fd = open(register_fifo_path, O_RDONLY);
-    if (register_fd == -1) {
-        perror("Failed to open register FIFO");
-        return NULL;
-    }
-
-    while (1) {
-        char buffer[3 * MAX_STRING_SIZE + 2];
-        ssize_t bytes_read = read(register_fd, buffer, sizeof(buffer) - 1);
-        if (bytes_read > 0) {
-            buffer[bytes_read] = '\0';
-            // FIXME: Log received client connection request
-            fprintf(stderr, "FIXME: Received client connection request: %s\n", buffer);
-
-            char req_pipe_path[MAX_STRING_SIZE];
-            char resp_pipe_path[MAX_STRING_SIZE];
-            char notif_pipe_path[MAX_STRING_SIZE];
-            sscanf(buffer, "%*c|%40s|%40s|%40s", req_pipe_path, resp_pipe_path, notif_pipe_path);
-
-            // Handle the connection request (e.g., create a new thread to handle the client)
-            // FIXME: Log client request pipe paths
-            fprintf(stderr, "FIXME: req_pipe_path=%s, resp_pipe_path=%s, notif_pipe_path=%s\n", req_pipe_path, resp_pipe_path, notif_pipe_path);
-        } else if (bytes_read == -1 && errno != EAGAIN) {
-            perror("Failed to read from register FIFO");
-            break;
-        }
-        sleep(1); // Sleep for 1s
-    }
-
-    close(register_fd);
-    return NULL;
-}
-
 // Filter function for directory entries
 int filter_job_files(const struct dirent *entry) {
     const char *dot = strrchr(entry->d_name, '.');
@@ -301,14 +265,7 @@ static void dispatch_threads(DIR *dir, char *register_fifo_path) {
       return;
     }
   }
-
-  // ler do FIFO de registo - Lopes
-  pthread_t client_thread;
-  if (pthread_create(&client_thread, NULL, handle_client_connections, (void *)register_fifo_path) != 0) {
-    perror("Failed to create client connection handler thread");
-    return;
-  }
-
+  
   for (unsigned int i = 0; i < max_threads; i++) {
     if (pthread_join(threads[i], NULL) != 0) {
       fprintf(stderr, "Failed to join thread %u\n", i);
