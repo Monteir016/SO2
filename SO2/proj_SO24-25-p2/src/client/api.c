@@ -112,6 +112,7 @@ int kvs_disconnect(void) {
 int kvs_subscribe(const char *key) { //EDITAR
   // send subscribe message to request pipe and wait for response in response
   // pipe
+/*
   int req_fd = open(reqPipePath, O_WRONLY);
   if (req_fd == -1) {
     perror("Failed to open request pipe");
@@ -146,6 +147,8 @@ int kvs_subscribe(const char *key) { //EDITAR
 
   printf("Server returned %d for operation: subscribe\n", response);
   return response == 0 ? 0 : 1;
+*/
+return 1;
 }
 
 int kvs_unsubscribe(const char *key) { //EDITAR
