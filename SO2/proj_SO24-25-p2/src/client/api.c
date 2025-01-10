@@ -109,7 +109,7 @@ int kvs_disconnect(void) {
   return 0;
 }
 
-int kvs_subscribe(const char *key) { //EDITAR
+int kvs_subscribe() { //const char *key) { //EDITAR
   // send subscribe message to request pipe and wait for response in response
   // pipe
 /*
