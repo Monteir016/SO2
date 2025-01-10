@@ -245,7 +245,7 @@ static void *get_file(void *arguments) {
   pthread_exit(NULL);
 }
 
-static void dispatch_threads(DIR *dir, char *register_fifo_path) {
+static void dispatch_threads(DIR *dir) {
   pthread_t *threads = malloc(max_threads * sizeof(pthread_t));
 
   if (threads == NULL) {
@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  dispatch_threads(dir, register_fifo_path); //Lopes
+  dispatch_threads(dir); //Lopes
 
     int register_fd = open(register_fifo_path, O_RDONLY);
     //FIXME
